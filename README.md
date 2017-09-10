@@ -1,16 +1,16 @@
-##前言
+## 前言
 最近在构建MVVM框架，因为这个框架最重要的就是利用DataBinding框架实现VM与V层的交互（以下所称VM和V都指代这个框架），所以有必要深入研究下DataBinding的原理。本文重点讲解DataBinding的原理，里面会穿插DataBinding的一些基本用法，所以需要读者有一定DataBinding使用经验，不了解DataBinding用法的，请移步[MVVM之DataBinding入门](http://www.jianshu.com/p/dd247d6a562d)、[官方文档](https://developer.android.com/topic/libraries/data-binding/index.html?hl=zh-cn)
 
-##DataBinding做了些什么事
+## DataBinding做了些什么事
 DataBinding主要做了两件事：
 1.取代烦琐的findviewbyid，自动在binding中生成对应的view
 2.绑定VM层和V层的监听关系，使得VM和V层的交互更简单
 这里的交互是指两个方向的交互，一是VM通知V层作改变，比如setText,setColor，二是V层通知VM作改变，比如click事件，edittext的输入
 
-##取代findviewbyid
+## 取代findviewbyid
 DataBinding如何取代那些可恶的findviewbyid的呢？在讲原理前我首先说明一点，DataBinding框架并没有用其他高级的API替代现有的API，只是对原有API的封装，也就是说不管是findviewbyid，还是setText，click事件，DataBinding还是用findviewbyid这些原有的API实现的，只是把它隐藏起来了，我们开发过程中不用自己写，因为框架帮我们写了。下面我就把这些隐藏起来的代码呈现出来，看看它到底用了什么魔法。
 
-* ####改造xml
+#### 1.改造xml
 我们在写xml文件的时候，需要在头部加layout，并设置data，你以为这是高级API，其实不然，这个xml在编译的时候会被改造。我们先看一个原始的
 ``` xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -108,10 +108,9 @@ DataBinding如何取代那些可恶的findviewbyid的呢？在讲原理前我首
 ```
 比较之后就可以看到，我们手动添加的layout，data，以及@{viewModel.name}这些看似高级的API用法，其实在编译后都去掉了，取代他们的是在各个绑定了@{}的View添加一个tag，这些tag以binding_开头，后面接一个数字，这里注意：没有绑定@{}的view不会添加tag，比如上面的tv_value1。然后在根布局里也加了一个tag，名字是"layout/xxxx_xx"。为什么要在xml里面加一些莫明其妙的tag呢，接下来我们看看绑定layout的代码就知道了
 
-*  ####绑定layout
+#### 2.绑定layout
 
 我们绑定layout的代码有两种，Acitivity里是DataBindingUtil.setContentView，Fragment里是DataBindingUtil.inflate，两个方法调用后都会走到bind这个方法
-``` java
     private static DataBinderMapper sMapper = new DataBinderMapper();
 
     static <T extends ViewDataBinding> T bind(DataBindingComponent bindingComponent, View root,
@@ -405,8 +404,8 @@ DataBinding如何取代那些可恶的findviewbyid的呢？在讲原理前我首
 
 至此，xml中所有的View就一一绑定到FragmentNewListBinding的成员变量上去了，我们在代码中就可以用FragmentNewListBinding获得xml中各个view
 
-##绑定VM和V的交互
-* ####设置VM
+## 绑定VM和V的交互
+#### 1.设置VM
 在开发中完成VM和V的绑定需要binding.setVariable或者binding.setViewModel，两者效果一样，因为setVariable会间接调用setViewModel方法
 ```java
     public boolean setVariable(int variableId, Object variable) {
@@ -696,7 +695,7 @@ registerTo最后调用了listener.setTarget(observable)方法，
 
 ![drawing](http://upload-images.jianshu.io/upload_images/3387045-7534a60360ad0ede.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-* ####VM回调通知V
+#### 2.VM回调通知V
 这些类之间的联系搞清楚之后，我们再看VM是怎么通知View进行改变的。之前我们在xml里面写了一些@{}的代码
 ```xml
         <TextView
@@ -946,7 +945,7 @@ dirtyFlags为1或者为最高位的1000000，或者为10000001时，所有的判
 
 至此，我们把DataBinding框架大体的逻辑搞清楚了，小结一下吧
 
-##小结
-######1.DataBindingUtil.setContentView方法将xml中的各个View赋值给ViewDataBinding，完成findviewbyid的任务
-######2.ViewDataBinding的setVariable方法建立了ViewDataBinding与VM之间的联系，也就搭建了一个可以互相通信的桥梁
-######3.当VM层调用notifyPropertyChanged方法时，最终在ViewDataBinding的executeBindings方法中处理逻辑
+## 小结
+###### 1.DataBindingUtil.setContentView方法将xml中的各个View赋值给ViewDataBinding，完成findviewbyid的任务
+###### 2.ViewDataBinding的setVariable方法建立了ViewDataBinding与VM之间的联系，也就搭建了一个可以互相通信的桥梁
+###### 3.当VM层调用notifyPropertyChanged方法时，最终在ViewDataBinding的executeBindings方法中处理逻辑
